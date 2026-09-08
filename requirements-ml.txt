@@ -1,0 +1,7 @@
+# Offline model training and computer-vision development dependencies.
+opencv-python>=4.8.0
+numpy>=1.22.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+qrcode[pil]>=7.4.2
+pillow>=9.5.0

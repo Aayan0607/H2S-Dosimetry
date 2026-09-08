@@ -1,0 +1,23 @@
+{
+  "is_valid": true,
+  "quality_score": 100.0,
+  "predicted_category": "VALID_SCAN",
+  "actionable_warnings": [],
+  "category_confidences": {
+    "VALID_SCAN": 0.6995,
+    "OUT_OF_FOCUS": 0.0756,
+    "GLARE_PRESENT": 0.0737,
+    "OCCLUDED_OR_DIRTY": 0.0756,
+    "EXPIRED_OR_DAMAGED": 0.0756
+  },
+  "metrics": {
+    "raw_sharpness": 1127.63,
+    "blur_threshold": 86.94,
+    "blur_score": 100.0,
+    "glare_sensor_pct": 0.0,
+    "glare_ref_pct": 0.73,
+    "mean_luminance": 104.9,
+    "quadrant_delta_l": 6.3,
+    "tilt_angle_deg": 1.3
+  }
+}

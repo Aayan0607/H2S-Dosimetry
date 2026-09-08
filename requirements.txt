@@ -1,0 +1,3 @@
+# Production dependencies used by the Vercel FastAPI function.
+fastapi>=0.116,<1
+firebase-admin>=7,<8

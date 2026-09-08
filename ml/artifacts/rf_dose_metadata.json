@@ -1,0 +1,102 @@
+{
+  "modelVersion": "rf-dose-v2",
+  "algorithm": "RandomForestRegressor",
+  "featureNames": [
+    "lab_l",
+    "lab_a",
+    "lab_b",
+    "hsv_s",
+    "hsv_v",
+    "uniformity",
+    "image_quality",
+    "detection_confidence"
+  ],
+  "doseUnit": "ppm.h",
+  "empiricalAnchors": [
+    {
+      "dosePpmH": 0.0,
+      "rgb": [
+        212,
+        228,
+        227
+      ]
+    },
+    {
+      "dosePpmH": 3.0,
+      "rgb": [
+        200,
+        203,
+        185
+      ]
+    },
+    {
+      "dosePpmH": 10.0,
+      "rgb": [
+        203,
+        194,
+        168
+      ]
+    }
+  ],
+  "syntheticAnchors": [
+    {
+      "dosePpmH": 20.0,
+      "rgb": [
+        160,
+        120,
+        80
+      ]
+    },
+    {
+      "dosePpmH": 37.5,
+      "rgb": [
+        82,
+        58,
+        38
+      ]
+    },
+    {
+      "dosePpmH": 60.0,
+      "rgb": [
+        28,
+        27,
+        24
+      ]
+    }
+  ],
+  "riskBands": [
+    {
+      "max": 0.75,
+      "category": "UNEXPOSED",
+      "risk": "SAFE"
+    },
+    {
+      "max": 5,
+      "category": "LOW",
+      "risk": "LOW RISK"
+    },
+    {
+      "max": 15,
+      "category": "MODERATE",
+      "risk": "MODERATE RISK"
+    },
+    {
+      "max": 25,
+      "category": "HIGH",
+      "risk": "HIGH RISK"
+    },
+    {
+      "max": 999,
+      "category": "CRITICAL",
+      "risk": "CRITICAL RISK"
+    }
+  ],
+  "trainingRows": 6400,
+  "validation": {
+    "maePpmH": 1.3444817542408543,
+    "rmsePpmH": 2.503837612739212,
+    "r2": 0.9848903305474177
+  },
+  "provenance": "first_three_photo_swatches_plus_declared_synthetic_extension",
+  "warning": "Prototype estimate, not validated dosimetry."
+}
