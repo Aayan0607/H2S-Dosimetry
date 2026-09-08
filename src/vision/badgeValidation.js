@@ -77,12 +77,12 @@ export function validateBadgeRegions(source) {
   const qrFound = Boolean(qr && qr.found);
 
   // 2. H2S Sensing Strip Detection (outer badge box + inner sensing patch)
-  const detection = detectSensingRegion(fullImageData);
+  const detection = detectSensingRegion(fullImageData, qr);
   let sensingStripFound = false;
   let patchDetection = null;
 
   if (detection && detection.box && detection.confidence >= 0.35) {
-    patchDetection = detectSensingPatch(fullImageData, detection.box);
+    patchDetection = detectSensingPatch(fullImageData, detection.box, qr);
     if (
       patchDetection &&
       patchDetection.box &&

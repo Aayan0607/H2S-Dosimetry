@@ -257,13 +257,27 @@ export function detectReferencePatch(imageData, { badgeBox = null, qrLocation = 
     const lab = rgbToLab(meanR, meanG, meanB);
     const chroma = Math.sqrt(lab.a * lab.a + lab.b * lab.b);
 
-    // Confidence scoring based on neutrality, fill, and aspect ratio
+    // Confidence scoring based on neutrality, fill, aspect ratio, and the
+    // expected CAD position beside the sensing strip. The spatial prior is
+    // deliberately soft so older badge layouts continue to use color evidence.
     const neutralityScore = Math.max(0, 1 - chroma / 16);
     const fillScore = Math.min(1, fillRatio / 0.7);
     const aspect = compH / compW;
     const aspectScore = aspect >= 0.5 && aspect <= 6.0 ? 1 : 0.6;
+    let spatialScore = 0.5;
+    if (sensingRoi) {
+      const expectedX = sensingRoi.x + sensingRoi.w * 1.19;
+      const expectedY = sensingRoi.y + sensingRoi.h * 0.5;
+      const candidateX = box.x + box.w * 0.5;
+      const candidateY = box.y + box.h * 0.5;
+      const normalizer = Math.max(12, sensingRoi.w, sensingRoi.h);
+      const distance = Math.hypot(candidateX - expectedX, candidateY - expectedY) / normalizer;
+      spatialScore = Math.max(0, 1 - distance / 1.5);
+    }
 
-    const confidence = 0.4 * neutralityScore + 0.4 * fillScore + 0.2 * aspectScore;
+    const confidence = sensingRoi
+      ? 0.32 * neutralityScore + 0.30 * fillScore + 0.13 * aspectScore + 0.25 * spatialScore
+      : 0.4 * neutralityScore + 0.4 * fillScore + 0.2 * aspectScore;
 
     candidates.push({
       box,
@@ -271,6 +285,7 @@ export function detectReferencePatch(imageData, { badgeBox = null, qrLocation = 
       confidence,
       area: boxArea,
       chroma,
+      spatialScore,
     });
   }
 

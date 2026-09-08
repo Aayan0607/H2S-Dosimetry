@@ -205,8 +205,17 @@ export function estimateBadgeFromQr(qr, imageWidth, imageHeight) {
     };
   }
   const loc = qr.location;
-  const qrW = Math.abs(loc.topRightCorner.x - loc.topLeftCorner.x);
-  const qrH = Math.abs(loc.bottomLeftCorner.y - loc.topLeftCorner.y);
+  // Use edge lengths rather than only x/y deltas. Phone captures commonly
+  // rotate the badge, where a nearly vertical QR edge can otherwise appear to
+  // have almost zero width and produce an undersized badge estimate.
+  const qrW = Math.hypot(
+    loc.topRightCorner.x - loc.topLeftCorner.x,
+    loc.topRightCorner.y - loc.topLeftCorner.y
+  );
+  const qrH = Math.hypot(
+    loc.bottomLeftCorner.x - loc.topLeftCorner.x,
+    loc.bottomLeftCorner.y - loc.topLeftCorner.y
+  );
   const size = Math.max(qrW, qrH, 30);
   const cx = (loc.topLeftCorner.x + loc.bottomRightCorner.x) / 2;
   const cy = (loc.topLeftCorner.y + loc.bottomRightCorner.y) / 2;

@@ -1,4 +1,5 @@
 import jsQR from 'jsqr';
+import { mapLocationToSource } from './qrGeometry';
 
 /**
  * Attempt to detect and decode a QR code within the given ImageData.
@@ -12,8 +13,14 @@ export function detectQr(imageData) {
 
     for (const candidate of candidates) {
       decoderAttempts += 1;
-      result = decode(candidate);
-      if (result) break;
+      const decoded = decode(candidate.imageData);
+      if (decoded) {
+        result = {
+          ...decoded,
+          location: mapLocationToSource(decoded.location, candidate.transform),
+        };
+        break;
+      }
     }
 
     const diagnostics = {
@@ -166,15 +173,31 @@ function qrCandidates(imageData) {
   const { width, height } = imageData;
   const candidates = [];
 
+  const addCandidate = (candidateImageData, transform) => {
+    candidates.push({ imageData: candidateImageData, transform });
+  };
+
+  const addVariants = (candidateImageData, transform) => {
+    addCandidate(candidateImageData, transform);
+    addCandidate(grayscale(candidateImageData), transform);
+    addCandidate(threshold(candidateImageData), transform);
+    addCandidate(contrast(candidateImageData), transform);
+  };
+
   // Candidate 1: Full frame as-is
-  candidates.push(imageData);
+  addCandidate(imageData, { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 });
 
   // Candidate 2: Downsampled full-frame if high resolution
   if (width > 800 || height > 800) {
     const maxDim = 720;
     const scale = maxDim / Math.max(width, height);
     const scaled = cropImageData(imageData, { x: 0, y: 0, w: width, h: height }, scale);
-    candidates.push(scaled, grayscale(scaled), threshold(scaled));
+    addVariants(scaled, {
+      offsetX: 0,
+      offsetY: 0,
+      scaleX: scaled.width / width,
+      scaleY: scaled.height / height,
+    });
   }
 
   // Key regions to search for QR matrix:
@@ -195,10 +218,12 @@ function qrCandidates(imageData) {
     const scale = regMax > 550 ? 450 / regMax : (regMax < 180 ? 300 / regMax : 1.0);
     const crop = cropImageData(imageData, region, scale);
 
-    candidates.push(crop);
-    candidates.push(grayscale(crop));
-    candidates.push(threshold(crop));
-    candidates.push(contrast(crop));
+    addVariants(crop, {
+      offsetX: region.x,
+      offsetY: region.y,
+      scaleX: crop.width / region.w,
+      scaleY: crop.height / region.h,
+    });
   }
 
   return candidates;
@@ -251,14 +276,40 @@ function contrast(imageData) {
 
 function threshold(imageData) {
   const data = new Uint8ClampedArray(imageData.data);
-  let sum = 0;
+  const histogram = new Uint32Array(256);
+  let pixelCount = 0;
+  let weightedSum = 0;
   for (let i = 0; i < data.length; i += 4) {
-    sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const lum = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    histogram[lum]++;
+    weightedSum += lum;
+    pixelCount++;
   }
-  const avg = sum / (data.length / 4);
+
+  // Otsu's threshold is markedly more stable than a plain frame average when
+  // a phone photo contains shadows or one bright side of the wristband.
+  let backgroundWeight = 0;
+  let backgroundSum = 0;
+  let bestVariance = -1;
+  let cutoff = weightedSum / Math.max(1, pixelCount);
+  for (let level = 0; level < 256; level++) {
+    backgroundWeight += histogram[level];
+    if (!backgroundWeight) continue;
+    const foregroundWeight = pixelCount - backgroundWeight;
+    if (!foregroundWeight) break;
+    backgroundSum += level * histogram[level];
+    const backgroundMean = backgroundSum / backgroundWeight;
+    const foregroundMean = (weightedSum - backgroundSum) / foregroundWeight;
+    const variance = backgroundWeight * foregroundWeight * (backgroundMean - foregroundMean) ** 2;
+    if (variance > bestVariance) {
+      bestVariance = variance;
+      cutoff = level;
+    }
+  }
+
   for (let i = 0; i < data.length; i += 4) {
     const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    const val = lum > avg ? 255 : 0;
+    const val = lum > cutoff ? 255 : 0;
     data[i] = val;
     data[i + 1] = val;
     data[i + 2] = val;

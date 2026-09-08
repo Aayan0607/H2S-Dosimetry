@@ -14,6 +14,7 @@ import { loadCalibration } from '../calibration/calibrationStore';
 import { detectReferencePatch, applyOpticalCorrection, TARGET_REFERENCE_RGB } from './referencePatchDetect';
 import { rgbToLab, rgbToHsv, rgbToHsl } from './colorSpace';
 import { verifyBadgeExpiry } from './badgeExpiry';
+import { remapQrResult } from './qrGeometry';
 
 const WORKING_WIDTH = 900; // normalized working resolution for the full pipeline
 
@@ -39,7 +40,12 @@ export function runAnalysis(img, { manualRoi = null, referencePatch = null, batc
   // 3. QR CODE DETECTION (independent of badge detection — try on full frame)
   const originalCanvas = drawToCanvas(img).canvas;
   const originalQr = detectQr(getImageData(originalCanvas));
-  let qr = originalQr.found ? originalQr : detectQr(fullImageData);
+  let qr = originalQr.found
+    ? remapQrResult(originalQr, {
+        scaleX: workingCanvas.width / originalCanvas.width,
+        scaleY: workingCanvas.height / originalCanvas.height,
+      })
+    : detectQr(fullImageData);
 
   // 3.1. BADGE EXPIRY / RELIABILITY VERIFICATION
   const expiryVerification = verifyBadgeExpiry(qr.metadata);
@@ -107,7 +113,7 @@ export function runAnalysis(img, { manualRoi = null, referencePatch = null, batc
       const qrCropCanvas = cropCanvas(workingCanvas, qx, qy, qw, qh);
       const badgeQr = detectQr(getImageData(qrCropCanvas));
       if (badgeQr.found) {
-        qr = badgeQr;
+        qr = remapQrResult(badgeQr, { offsetX: qx, offsetY: qy });
       }
     }
   }
